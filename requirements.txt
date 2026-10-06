@@ -1,0 +1,6 @@
+flask
+faker
+numpy
+pandas
+scipy
+scikit-learn

@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FakerChurnGen — Synthetic Churn Generator</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <header class="app-header">
+        <div class="header-inner">
+            <span class="header-badge">Synthetic Telemetry & ML Benchmark Engine</span>
+            <h1>FakerChurnGen</h1>
+            <p>Crafting realistic, mathematically coherent customer churn datasets for machine learning</p>
+        </div>
+    </header>
+
+    <main class="app-container">
+        <!-- Card 1: Configuration -->
+        <section class="card" id="config-card">
+            <h2>Dataset Parameters</h2>
+            
+            <div class="form-group">
+                <label for="preset-select">Industry Domain</label>
+                <select id="preset-select"></select>
+                <p id="preset-description" class="help-text"></p>
+            </div>
+
+            <div class="form-group">
+                <label>Dataset Size (Row Scale)</label>
+                <div class="row-presets-container" id="row-presets-pills">
+                    <button type="button" class="btn-pill" data-rows="1000">1K</button>
+                    <button type="button" class="btn-pill" data-rows="5000">5K</button>
+                    <button type="button" class="btn-pill active" data-rows="10000">10K</button>
+                    <button type="button" class="btn-pill" data-rows="50000">50K</button>
+                    <button type="button" class="btn-pill" data-rows="100000">100K</button>
+                    <button type="button" class="btn-pill" data-rows="500000">500K</button>
+                    <button type="button" class="btn-pill" data-rows="1000000">1M</button>
+                    <button type="button" class="btn-pill" data-rows="5000000">5M</button>
+                    <button type="button" class="btn-pill" data-rows="10000000">10M</button>
+                </div>
+                <label for="num-rows" style="margin-top: 0.5rem;">Target Row Count</label>
+                <input type="number" id="num-rows" value="10000" min="10" max="10000000" placeholder="e.g. 10000">
+            </div>
+
+            <div class="form-group">
+                <label for="target-churn">Baseline Churn Probability (<span id="target-churn-val">26.5</span>%)</label>
+                <input type="range" id="target-churn" min="5" max="50" value="26.5" step="0.1">
+            </div>
+
+            <div class="form-group">
+                <label for="noise-level">Residual Noise Variance (<span id="noise-level-val">0.30</span>)</label>
+                <input type="range" id="noise-level" min="0" max="1" value="0.30" step="0.01">
+                <p class="help-text">Controls residual noise in the logistic link: 0.0 is deterministic, 1.0 increases variance.</p>
+            </div>
+
+            <div class="form-group">
+                <label for="seed">Deterministic PRNG Seed</label>
+                <input type="number" id="seed" placeholder="e.g. 42 (optional)">
+            </div>
+        </section>
+
+        <!-- Card 2: Categorized Columns -->
+        <section class="card" id="columns-card">
+            <h2>
+                <span>Feature Schema</span>
+                <span class="column-counter-badge" id="column-counter">0 / 0 Selected</span>
+            </h2>
+
+            <div class="column-controls-bar">
+                <input type="text" id="column-search" class="column-search-input" placeholder="Search features or categories...">
+                <div class="column-actions-row">
+                    <div>
+                        <button type="button" id="btn-select-all-cols" class="btn-text-action">Select All</button>
+                        <span style="color: var(--border-subtle);">·</span>
+                        <button type="button" id="btn-deselect-all-cols" class="btn-text-action">Deselect All</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="categories-container" class="categories-container">
+                <!-- Dynamically populated category sections -->
+            </div>
+        </section>
+
+        <!-- Card 3: Relationship Rules -->
+        <section class="card" id="relationships-card">
+            <div class="card-header-flex">
+                <h2>Causal Relationship Engine</h2>
+                <div class="toggle-container">
+                    <label class="switch">
+                        <input type="checkbox" id="json-toggle">
+                        <span class="slider round"></span>
+                    </label>
+                    <span>Raw JSON</span>
+                </div>
+            </div>
+
+            <!-- Quick Rule Templates Bar -->
+            <div class="rule-templates-bar">
+                <span class="rule-templates-label">Templates:</span>
+                <button type="button" class="btn-template" data-template="bathtub">Bathtub Hazard Curve</button>
+                <button type="button" class="btn-template" data-template="price-shock">Price Sensitivity Shock</button>
+                <button type="button" class="btn-template" data-template="inactivity">Inactivity Decay</button>
+                <button type="button" class="btn-template" data-template="loyalty-anchor">Loyalty Anchor</button>
+            </div>
+            
+            <div id="rules-ui-view">
+                <div id="rules-list">
+                    <!-- Populated dynamically -->
+                </div>
+                <button id="btn-add-rule" class="btn btn-secondary">＋ Add Causal Rule</button>
+            </div>
+            
+            <div id="rules-json-view" class="hidden">
+                <textarea id="rules-json-textarea" rows="14"></textarea>
+                <button id="btn-apply-json" class="btn btn-secondary">Apply JSON Rules</button>
+            </div>
+        </section>
+
+        <!-- Card 4: Preview & Download -->
+        <section class="card full-width" id="preview-card">
+            <h2>Data Preview & Export</h2>
+            <div class="action-buttons">
+                <div class="preview-controls-wrap">
+                    <button id="btn-preview" class="btn btn-primary">Generate Preview</button>
+                    <select id="preview-rows-select" class="preview-rows-select" title="Preview row count">
+                        <option value="5">5 rows</option>
+                        <option value="10">10 rows</option>
+                        <option value="25">25 rows</option>
+                        <option value="50" selected>50 rows</option>
+                        <option value="100">100 rows</option>
+                        <option value="200">200 rows</option>
+                    </select>
+                </div>
+                <button id="btn-download" class="btn btn-success">Download Dataset (CSV)</button>
+            </div>
+            <div id="loading-spinner" class="spinner hidden"></div>
+            
+            <div id="stats-container" class="hidden stats-box">
+                <div class="stat-item">
+                    <span class="stat-label">Achieved Churn Rate</span>
+                    <span id="stat-churn-rate" class="stat-value"></span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Active Features</span>
+                    <span id="stat-cols" class="stat-value"></span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Preview Samples</span>
+                    <span id="stat-rows" class="stat-value"></span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Domain Invariants</span>
+                    <span id="stat-invariants" class="stat-value" style="color: var(--accent-sage);">100% Verified</span>
+                </div>
+            </div>
+            
+            <div id="table-container" class="table-responsive hidden">
+                <table id="preview-table">
+                    <thead>
+                        <tr id="table-head-row"></tr>
+                    </thead>
+                    <tbody id="table-body">
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Card 5: ML Baseline & Feature Diagnostic -->
+        <section class="card full-width" id="ml-card">
+            <h2>
+                <span>ML Baseline & Feature Attribution Diagnostic</span>
+                <span class="column-counter-badge" id="ml-model-badge">Classifier Inactive</span>
+            </h2>
+            <p class="help-text" style="margin-bottom: 1.25rem;">
+                Train an in-memory classifier to immediately evaluate dataset discriminability, check whether imposed causal rules dominate model predictions, and inspect feature attribution.
+            </p>
+
+            <div class="ml-controls-bar">
+                <select id="ml-model-type" class="ml-select" title="Algorithm">
+                    <option value="hist_gb">HistGradientBoosting (Gradient Tree Ensemble)</option>
+                    <option value="logistic_regression">Logistic Regression (L2 Regularized)</option>
+                </select>
+                <select id="ml-train-rows" class="ml-select" title="Sample Size">
+                    <option value="1000">1,000 training samples</option>
+                    <option value="2500" selected>2,500 training samples (Fastest)</option>
+                    <option value="5000">5,000 training samples</option>
+                    <option value="10000">10,000 training samples</option>
+                </select>
+                <button type="button" id="btn-train-ml" class="btn btn-primary">Train Baseline Model</button>
+            </div>
+            
+            <div id="ml-loading-spinner" class="spinner hidden"></div>
+
+            <div id="ml-results-container" class="hidden">
+                <div class="ml-results-grid">
+                    <!-- Left: Metrics & Confusion Matrix -->
+                    <div>
+                        <div class="ml-scorecards-grid">
+                            <div class="ml-scorecard">
+                                <span class="metric-label">ROC-AUC Score</span>
+                                <span class="metric-val" id="ml-roc-auc">0.000</span>
+                            </div>
+                            <div class="ml-scorecard">
+                                <span class="metric-label">PR-AUC (Avg Precision)</span>
+                                <span class="metric-val" id="ml-pr-auc">0.000</span>
+                            </div>
+                            <div class="ml-scorecard">
+                                <span class="metric-label">F1-Score</span>
+                                <span class="metric-val" id="ml-f1">0.000</span>
+                            </div>
+                            <div class="ml-scorecard">
+                                <span class="metric-label">Accuracy</span>
+                                <span class="metric-val" id="ml-acc">0.0%</span>
+                            </div>
+                        </div>
+
+                        <div class="confusion-matrix-box">
+                            <div class="cm-title">2×2 Confusion Matrix (Test Set: 20%)</div>
+                            <div class="cm-grid">
+                                <div class="cm-cell">
+                                    <div class="cm-cell-label">True Negative (Retained)</div>
+                                    <div class="cm-cell-val" id="cm-tn">0</div>
+                                    <div class="cm-cell-pct" id="cm-tn-pct">0%</div>
+                                </div>
+                                <div class="cm-cell">
+                                    <div class="cm-cell-label">False Positive (False Alarm)</div>
+                                    <div class="cm-cell-val" id="cm-fp">0</div>
+                                    <div class="cm-cell-pct" id="cm-fp-pct">0%</div>
+                                </div>
+                                <div class="cm-cell">
+                                    <div class="cm-cell-label">False Negative (Missed Churn)</div>
+                                    <div class="cm-cell-val" id="cm-fn">0</div>
+                                    <div class="cm-cell-pct" id="cm-fn-pct">0%</div>
+                                </div>
+                                <div class="cm-cell positive">
+                                    <div class="cm-cell-label">True Positive (Caught Churn)</div>
+                                    <div class="cm-cell-val" id="cm-tp">0</div>
+                                    <div class="cm-cell-pct" id="cm-tp-pct">0%</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="diagnostic-note" id="ml-diagnostic-note">
+                            <strong>Diagnostic Finding:</strong> <span id="ml-diagnostic-text">Awaiting model training...</span>
+                        </div>
+                    </div>
+
+                    <!-- Right: Feature Importance Bar Chart -->
+                    <div>
+                        <div class="feature-importance-box">
+                            <div class="cm-title">Top 10 Feature Importances (Relative Predictive Impact)</div>
+                            <div class="feature-importance-list" id="feature-importance-list">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="app-footer">
+        <p>FakerChurnGen — Handcrafted for realistic machine learning experiments and causal inference.</p>
+    </footer>
+
+    <!-- Advanced Multi-Condition Rule Modal -->
+    <div id="rule-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close" id="modal-close">&times;</span>
+            <h2>Configure Causal Rule</h2>
+            
+            <div class="form-group">
+                <label for="rule-type">Rule Primitive</label>
+                <select id="rule-type">
+                    <option value="interaction">Composite Interaction (Multi-Condition AND)</option>
+                    <option value="correlation">Copula Correlation (Pairwise Matrix)</option>
+                    <option value="conditional">Conditional Feature Distribution</option>
+                    <option value="nonlinear">Nonlinear Hazard Transformation</option>
+                </select>
+            </div>
+
+            <!-- 1. Composite Multi-Condition Interaction Builder -->
+            <div id="form-group-interaction">
+                <p class="help-text" style="margin-bottom: 0.6rem;">When all of the following conditions hold simultaneously, adjust the customer's churn log-odds:</p>
+                
+                <div id="interaction-conditions-list" class="condition-rows-container">
+                    <!-- Dynamic condition rows -->
+                </div>
+                
+                <button type="button" id="btn-add-condition-row" class="btn-add-condition">＋ Add Another Condition</button>
+
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label for="inter-boost">Churn Odds Adjustment (+/- log-odds impact)</label>
+                    <input type="number" id="inter-boost" step="0.1" value="1.0" placeholder="e.g. 1.2 or -0.8">
+                    <p class="help-text">Positive values increase churn probability; negative values act as protective retention anchors.</p>
+                </div>
+            </div>
+
+            <!-- 2. Correlation Fields -->
+            <div id="form-group-correlation" class="hidden">
+                <div class="form-group">
+                    <label for="corr-col-a">First Numeric Feature</label>
+                    <select id="corr-col-a" class="modal-col-select"></select>
+                </div>
+                <div class="form-group">
+                    <label for="corr-col-b">Second Numeric Feature</label>
+                    <select id="corr-col-b" class="modal-col-select"></select>
+                </div>
+                <div class="form-group">
+                    <label for="corr-coef">Target Pearson Correlation (-0.99 to 0.99)</label>
+                    <input type="number" id="corr-coef" step="0.05" min="-0.99" max="0.99" value="0.75">
+                </div>
+            </div>
+
+            <!-- 3. Conditional Distribution Fields -->
+            <div id="form-group-conditional" class="hidden">
+                <div class="form-group">
+                    <label for="cond-target">Target Feature (to overwrite)</label>
+                    <select id="cond-target" class="modal-col-select"></select>
+                </div>
+                <div class="form-group">
+                    <label for="cond-source">Condition Trigger Feature</label>
+                    <select id="cond-source" class="modal-col-select"></select>
+                </div>
+                <div class="form-group">
+                    <label for="cond-op">Trigger Operator</label>
+                    <select id="cond-op">
+                        <option value="==">== (Equals)</option>
+                        <option value=">">&gt; (Greater than)</option>
+                        <option value="<">&lt; (Less than)</option>
+                        <option value=">=">&gt;= (Greater or equal)</option>
+                        <option value="<=">&lt;= (Less or equal)</option>
+                        <option value="!=">!= (Not equal)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="cond-val">Trigger Value</label>
+                    <input type="text" id="cond-val" placeholder="e.g. Month-to-month, Fiber optic, or 50">
+                </div>
+                <div class="form-group">
+                    <label for="cond-dist">Target Distribution</label>
+                    <select id="cond-dist">
+                        <option value="choice">choice (Discrete categorical values)</option>
+                        <option value="normal">normal (Gaussian loc, scale)</option>
+                        <option value="uniform">uniform (Continuous low, high)</option>
+                        <option value="poisson">poisson (Count events lam)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="cond-params">Distribution Parameters (JSON)</label>
+                    <input type="text" id="cond-params" placeholder='{"elements": ["DSL"]} or {"loc": 100, "scale": 15}'>
+                </div>
+            </div>
+
+            <!-- 4. Nonlinear Fields -->
+            <div id="form-group-nonlinear" class="hidden">
+                <div class="form-group">
+                    <label for="nonlin-col">Feature</label>
+                    <select id="nonlin-col" class="modal-col-select"></select>
+                </div>
+                <div class="form-group">
+                    <label for="nonlin-type">Hazard Function Shape</label>
+                    <select id="nonlin-type">
+                        <option value="step">Step Threshold (Discontinuous jump)</option>
+                        <option value="u_curve">Bathtub U-Curve (High early & late risk)</option>
+                        <option value="decay">Exponential Decay (Recency halflife)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="nonlin-params">Function Parameters (JSON)</label>
+                    <input type="text" id="nonlin-params" placeholder='{"threshold": 12, "below": 0.8, "above": -0.4}'>
+                </div>
+            </div>
+
+            <button id="btn-save-rule" class="btn btn-primary" style="margin-top: 1rem; width: 100%;">Save Rule</button>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
