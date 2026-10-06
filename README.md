@@ -1,4 +1,4 @@
-# FakerChurnGen 📊
+# FakerChurnGen
 
 > **Realistic Synthetic Customer Churn Dataset Generator with Domain Invariants, Causal Relationships, and ML Benchmarking.**
 
@@ -6,7 +6,7 @@ FakerChurnGen is an end-to-end synthetic data synthesis engine designed to gener
 
 ---
 
-## 🌟 Key Features
+## Key Features
 
 - **9 Production Business Presets**:
   - **Telecom**: Contract terms, internet & voice add-on hierarchies, usage and tenure charges.
@@ -42,7 +42,7 @@ FakerChurnGen is an end-to-end synthetic data synthesis engine designed to gener
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
@@ -83,7 +83,7 @@ FakerChurnGen is an end-to-end synthetic data synthesis engine designed to gener
 
 ---
 
-## 🧪 Running the Test Suites
+## Running the Test Suites
 
 The test suite validates schema boundaries, reflection security, typed rule evaluation, Iman-Conover rank preservation, and invariant compliance:
 
@@ -100,7 +100,7 @@ python scratch/test_all_presets.py
 
 ---
 
-## 📂 Project Architecture
+## Project Architecture
 
 ```
 FakerChurnGen/
@@ -124,6 +124,6 @@ FakerChurnGen/
 
 ---
 
-## 📄 License
+## License
 
 MIT License. Feel free to use, modify, and distribute for ML research, synthetic data benchmarking, or demonstration purposes.
